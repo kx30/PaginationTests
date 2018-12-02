@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.AbsListView;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -32,8 +33,8 @@ public class MainActivity extends AppCompatActivity {
 
     private ArrayList<Picture> mPictures = new ArrayList<>();
 
-    private int mPageCounter = 1;
-    private int mScrollOutItems = 0;
+    private int mCurrentPage = 1;
+    private int mTotalPages;
 
     private RecyclerView mRecyclerView;
 
@@ -42,28 +43,26 @@ public class MainActivity extends AppCompatActivity {
     private GridLayoutManager mManager;
     private Adapter mAdapter;
 
-    private int mCurrentItems, mTotalItems, mScrollOutItem;
+    private int mCurrentItems, mTotalItems, mScrollOutItems;
     private Boolean mIsScrolling = false;
+    private Boolean mIsDownloaded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        Button button = (Button) findViewById(R.id.button);
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         mProgressBar = (ProgressBar) findViewById(R.id.progress);
         mManager = new GridLayoutManager(this, 2);
 
-        addPictures();
-
-        initRecyclerView();
+        new MyTask().execute();
 
         for (int i = 0; i < mPictures.size(); i++) {
             Log.d(TAG, "onCreate: " +
-                            "\nURL: " + mPictures.get(i).getUrl() +
-                            "\nName: " + mPictures.get(i).getName() +
-                            "\nDescription: " + mPictures.get(i).getDescription());
+                    "\nURL: " + mPictures.get(i).getUrl() +
+                    "\nName: " + mPictures.get(i).getName() +
+                    "\nDescription: " + mPictures.get(i).getDescription());
         }
 
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -80,119 +79,40 @@ public class MainActivity extends AppCompatActivity {
                 super.onScrolled(recyclerView, dx, dy);
                 mCurrentItems = mManager.getChildCount();
                 mTotalItems = mManager.getItemCount();
-                mScrollOutItem = mManager.findFirstVisibleItemPosition();
-                Log.d(TAG, "onScrolled: scroll scrollOutItem = "+ mScrollOutItem);
-                Log.d(TAG, "onScrolled: scroll currentItems = "+ mCurrentItems);
-                Log.d(TAG, "onScrolled: scroll totalItems = "+ mTotalItems);
+                mScrollOutItems = mManager.findFirstVisibleItemPosition();
+                Log.d(TAG, "onScrolled: scroll scrollOutItem = " + mScrollOutItems);
+                Log.d(TAG, "onScrolled: scroll currentItems = " + mCurrentItems);
+                Log.d(TAG, "onScrolled: scroll totalItems = " + mTotalItems);
 
-                if (mIsScrolling && (mCurrentItems + mScrollOutItem == mTotalItems)) {
+                if (mIsScrolling && (mCurrentItems + mScrollOutItems == mTotalItems)) {
                     mIsScrolling = false;
                     fetchData();
                 }
             }
         });
-
-//        button.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                mPageCounter++;
-//                new MyTask().execute();
-//
-//                Log.d(TAG, "onClick: mPictures's size: " + mPictures.size());
-//
-//                for (int i = mScrollOutItems; i < mPictures.size(); i++) {
-//                    Log.d(TAG, "onPostExecute: " + mScrollOutItems +":" +
-//                            "\nURL: " + mPictures.get(i).getUrl() +
-//                            "\nName: " + mPictures.get(i).getName() +
-//                            "\nDescription: " + mPictures.get(i).getDescription());
-//                    mScrollOutItems++;
-//                }
-//                initRecyclerView();
-//            }
-//        });
-
         Log.d(TAG, "onCreate: started.");
     }
 
 
     private void fetchData() {
-        mProgressBar.setVisibility(View.VISIBLE);
+        if (!mIsDownloaded) {
+            mProgressBar.setVisibility(View.VISIBLE);
+        }
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0; i < 8; i++) {
-                    mPictures.add(new Picture (
-                            mPictures.get(i).getName(),
-                            mPictures.get(i).getDescription(),
-                            mPictures.get(i).getUrl()));
-                    mAdapter.notifyDataSetChanged();
+                if (!mIsDownloaded && mCurrentPage <= mTotalPages) {
+                    new MyTask().execute();
+                    mCurrentPage++;
                     mProgressBar.setVisibility(View.GONE);
+                }
+                if (!mIsDownloaded && mCurrentPage > mTotalPages) {
+                    Toast.makeText(MainActivity.this, "All pictures have already been downloaded", Toast.LENGTH_SHORT).show();
+                    mProgressBar.setVisibility(View.GONE);
+                    mIsDownloaded = true;
                 }
             }
         }, 2000);
-
-    }
-
-    private void addPictures() {
-        mPictures.add(new Picture(
-                "brrr",
-                "brrr",
-                "http://gallery.dev.webant.ru/media/5baca83c2674e262290860.jpeg"
-        ));
-
-        mPictures.add(new Picture(
-                "brrr",
-                "brrr",
-                "http://gallery.dev.webant.ru/media/5baca83c2674e262290860.jpeg"
-        ));
-
-        mPictures.add(new Picture(
-                "brrr",
-                "brrr",
-                "http://gallery.dev.webant.ru/media/5baca83c2674e262290860.jpeg"
-        ));
-
-        mPictures.add(new Picture(
-                "brrr",
-                "brrr",
-                "http://gallery.dev.webant.ru/media/5baca83c2674e262290860.jpeg"
-        ));
-
-        mPictures.add(new Picture(
-                "brrr",
-                "brrr",
-                "http://gallery.dev.webant.ru/media/5baca83c2674e262290860.jpeg"
-        ));
-
-        mPictures.add(new Picture(
-                "brrr",
-                "brrr",
-                "http://gallery.dev.webant.ru/media/5baca83c2674e262290860.jpeg"
-        ));
-
-        mPictures.add(new Picture(
-                "brrr",
-                "brrr",
-                "http://gallery.dev.webant.ru/media/5baca83c2674e262290860.jpeg"
-        ));
-
-        mPictures.add(new Picture(
-                "brrr",
-                "brrr",
-                "http://gallery.dev.webant.ru/media/5baca83c2674e262290860.jpeg"
-        ));
-
-        mPictures.add(new Picture(
-                "brrr",
-                "brrr",
-                "http://gallery.dev.webant.ru/media/5baca83c2674e262290860.jpeg"
-        ));
-
-        mPictures.add(new Picture(
-                "brrr",
-                "brrr",
-                "http://gallery.dev.webant.ru/media/5baca83c2674e262290860.jpeg"
-        ));
 
     }
 
@@ -212,14 +132,16 @@ public class MainActivity extends AppCompatActivity {
         protected String doInBackground(Void... voids) {
             return resultJSON = new Connection().getJSON(
                     "http://gallery.dev.webant.ru/api/photos?page=",
-                    mPageCounter);
+                    mCurrentPage);
         }
 
         @Override
         protected void onPostExecute(String strJson) {
             super.onPostExecute(strJson);
-            new Connection().parseItems(mPictures, resultJSON);
+            mTotalPages = new Connection().parseItems(mPictures, resultJSON);
             Log.d(TAG, "onPostExecute: " + resultJSON);
+            Log.d(TAG, "onPostExecute: total pages: " + mTotalPages);
+            initRecyclerView();
         }
     }
 

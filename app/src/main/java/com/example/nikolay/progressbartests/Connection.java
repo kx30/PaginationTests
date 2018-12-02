@@ -13,6 +13,8 @@ import java.util.ArrayList;
 
 public class Connection {
 
+    private int mTotalPages;
+
     public String getJSON(String connectionURL, int currentPage) {
 
         HttpURLConnection urlConnection = null;
@@ -20,7 +22,7 @@ public class Connection {
         String resultJson = "";
 
         try {
-            URL url = new URL(connectionURL + currentPage + "&limit=2");
+            URL url = new URL(connectionURL + currentPage + "&limit=10");
             // EXAMPLE http://gallery.dev.webant.ru/api/photos?page=1&limit=2
 
             urlConnection = (HttpURLConnection) url.openConnection();
@@ -46,13 +48,15 @@ public class Connection {
         return resultJson;
     }
 
-    public void parseItems(ArrayList<Picture> pictures, String json) {
+    public int parseItems(ArrayList<Picture> pictures, String json) {
 
         JSONObject dataJsonObj;
 
         try {
             dataJsonObj = new JSONObject(json);
             JSONArray data = dataJsonObj.getJSONArray("data");
+
+            mTotalPages = dataJsonObj.getInt("countOfPages");
 
             for (int i = 0; i < data.length(); i++) {
                 JSONObject images = data.getJSONObject(i);
@@ -69,6 +73,7 @@ public class Connection {
         catch (JSONException e) {
             e.printStackTrace();
         }
+        return mTotalPages;
     }
 
 }
